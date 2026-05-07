@@ -59,7 +59,7 @@ struct VisualState {
         amplitude = a; bass = b; mid = m; treble = t;
     }
 
-    // Helper to convert Hue, Saturation, Value to RGB
+    // Convert HSV to RGB
     void hsv2rgb(float h, float s, float v, float& r, float& g, float& b) {
         float c = v * s;
         float h_prime = std::fmod(h, 360.0f) / 60.0f;
@@ -82,7 +82,7 @@ struct VisualState {
         float t = time;
         float rt = rot_time;
 
-        // 1. Determine Animation Drivers (Use audio if playing, otherwise auto-pulse over time)
+        // Animation drivers
         float dA, dB, dM, dT;
         if (has_audio) {
             dA = amplitude * reaction_multiplier;
@@ -104,8 +104,7 @@ struct VisualState {
 
         int id = 0;
 
-        // Layer 0: Central object (Bunny)
-        // Hovers slightly in the middle and rotates constantly
+        // Bunny slow idle rotation
         obj[id].active = true;
         obj[id].mesh_id = 0; // MESH_BUNNY
         obj[id].pos[0] = sinf(rt * 0.7f) * 0.02f;
@@ -125,8 +124,7 @@ struct VisualState {
         id++;
 
 
-        // Layer 1: Inner ring (Bass)
-        // Objects orbiting tightly that react to bass sounds
+        // Bass (inner ring) reacts to low end
         float ir = radius_bass;
         for (int i = 0; i < num_bass; i++) {
             if (id >= MAX_OBJECTS) break;
@@ -134,22 +132,21 @@ struct VisualState {
             obj[id].active = true;
             obj[id].mesh_id = 1; // MESH_SPHERE
 
-            // Calculate orbital position with uniform speed to prevent clipping
+
             float phase = i * (360.0f / (num_bass > 0 ? num_bass : 1)) + rt * 45.0f;
             float ang = phase * M_PI_F / 180.0f;
 
-            // Add static randomness to radius
+            // Add randomness to radius
             float r_offset = sinf(i * 123.45f) * 0.05f;
             float current_ir = ir + r_offset;
 
             obj[id].pos[0] = cosf(ang) * current_ir;
-            obj[id].pos[1] = 0.0f; // Fixed flat level height
+            obj[id].pos[1] = 0.0f;
             obj[id].pos[2] = sinf(ang) * current_ir;
             obj[id].rot_y = rt * 90.0f + i * 90.0f;
 
-            // Apply Bass reactivity
-            obj[id].scale = 0.10f + (dB * 0.18f); // Reduced reactivity
-            float pulse = 1.0f + (dB * 1.0f);     // Reduced reactivity
+            obj[id].scale = 0.10f + (dB * 0.18f);
+            float pulse = 1.0f + (dB * 1.0f);
 
             if (use_dynamic_colors) {
                 float hue = rt * 30.0f + i * 90.0f + dB * 80.0f;
@@ -169,8 +166,7 @@ struct VisualState {
         }
 
 
-        // Layer 2: Outer ring (Mids)
-        // Objects orbiting further out that react to vocals/melodies
+        // Mids (outer ring) reacts to mids/vocals
         float or_ = radius_mid;
         for (int i = 0; i < num_mid; i++) {
             if (id >= MAX_OBJECTS) break;
@@ -181,19 +177,17 @@ struct VisualState {
             float phase = i * (360.0f / (num_mid > 0 ? num_mid : 1)) + 45.0f + rt * 30.0f;
             float ang = phase * M_PI_F / 180.0f;
 
-            // Add static randomness to radius and height
             float r_offset = sinf(i * 321.12f) * 0.08f;
-            float h_offset = sinf(i * 666.66f) * 0.35f; // Greatly increased vertical displacement
+            float h_offset = sinf(i * 666.66f) * 0.35f;
             float current_or = or_ + r_offset;
 
             obj[id].pos[0] = cosf(ang) * current_or;
-            obj[id].pos[1] = h_offset + cosf(rt * 2.8f + i * 1.8f) * 0.1f; // Increased vertical bobbing
+            obj[id].pos[1] = h_offset + cosf(rt * 2.8f + i * 1.8f) * 0.1f;
             obj[id].pos[2] = sinf(ang) * current_or;
             obj[id].rot_y = rt * 140.0f + i * 45.0f;
 
-            // Apply Mid reactivity
-            obj[id].scale = 0.07f + (dM * 0.12f); // Reduced reactivity
-            float shimmer = 1.0f + (dM * 1.3f);   // Reduced reactivity
+            obj[id].scale = 0.07f + (dM * 0.12f);
+            float shimmer = 1.0f + (dM * 1.3f);
 
             if (use_dynamic_colors) {
                 float hue = 360.0f - (rt * 45.0f) + i * 90.0f + dM * 100.0f;
@@ -214,8 +208,7 @@ struct VisualState {
         }
 
 
-        // Layer 3: Outermost ring (Treble)
-        // Objects orbiting furthest out that react to hi-hats/snares
+        // Treble (outermost ring) reacts to hi-hats/snares
         float outer_r = radius_treble;
         for (int i = 0; i < num_treble; i++) {
             if (id >= MAX_OBJECTS) break;
@@ -225,17 +218,15 @@ struct VisualState {
 
             float phase, current_outer, h_offset;
             if (i < num_treble / 2) {
-                // First half of cubes start grouped in a line (20 degrees apart).
-                // They orbit together but have a tiny speed difference (i * 0.1f) so they slowly stretch into a long string!
-                phase = i * 12.0f - rt * (20.0f + i * 0.1f); 
-                current_outer = outer_r; // Clean uniform radius
-                h_offset = (i - (num_treble / 4.0f)) * 0.05f; // Slight geometric height slope
+                // First half orbit in a loose line, slowly spreading apart
+                phase = i * 12.0f - rt * (20.0f + i * 0.1f);
+                current_outer = outer_r;
+                h_offset = (i - (num_treble / 4.0f)) * 0.05f;
             } else {
-                // Remaining cubes are sporadic and wildly orbit the scene
-                // Bounded pseudo-random speed so it doesn't spin wildly out of control at high object counts
+                // Rest are scattered with randomized speeds
                 phase = i * 137.0f - rt * (25.0f + sinf(i * 321.0f) * 15.0f);
-                current_outer = outer_r + sinf(i * 456.78f) * 0.35f; // Sporadic radius
-                h_offset = sinf(i * 777.77f) * 0.3f; // Sporadic height
+                current_outer = outer_r + sinf(i * 456.78f) * 0.35f;
+                h_offset = sinf(i * 777.77f) * 0.3f;
             }
             float ang = phase * M_PI_F / 180.0f;
 
@@ -244,7 +235,6 @@ struct VisualState {
             obj[id].pos[2] = sinf(ang) * current_outer;
             obj[id].rot_y = rt * 100.0f + i * 45.0f;
 
-            // Apply Treble reactivity
             obj[id].scale = 0.04f + (dT * 0.10f);
             float flash = 1.0f + (dT * 0.8f);
 
@@ -267,8 +257,7 @@ struct VisualState {
         }
 
 
-        // Layer 4: Background particles (Reactive to overall amplitude)
-        // tiny objects floating in the background that react to overall sound
+        // Particles (scattered in distance) react to overall amplitude
         for (int i = 0; i < num_particles; i++) {
             if (id >= MAX_OBJECTS) break;
             
@@ -285,7 +274,6 @@ struct VisualState {
             obj[id].pos[2] = sinf(ang) * p_radius;
             obj[id].rot_y = rt * 20.0f + i * 33.0f;
 
-            // Apply Amplitude reactivity
             obj[id].scale = 0.005f + (dA * 0.010f);
 
             if (use_dynamic_colors) {
@@ -301,8 +289,7 @@ struct VisualState {
             id++;
         }
 
-        // Dynamic global lighting
-        // Light orbits the scene and pushes outward on loud parts
+        // Light orbits and pushes out on loud beats
         float la = (base_theta + rt * 50.0f + dB * 150.0f) * M_PI_F / 180.0f;
         float lr = 1.5f + (dA * 1.5f);
 

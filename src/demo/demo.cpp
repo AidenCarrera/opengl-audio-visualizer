@@ -357,7 +357,7 @@ void display(GLFWwindow* window)
     glClearBufferfv(GL_COLOR, 0, color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
 
-    // Dynamic Camera calculating eye from orbit logic
+    // Dynamic Camera based on user input
     float rad = camera_orbit_angle * M_PI_F / 180.0f;
     eye[0] = camera_radius * sinf(rad);
     eye[1] = camera_height;
