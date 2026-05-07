@@ -103,25 +103,6 @@ void Onkey(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         switch (key)
         {
-        case GLFW_KEY_EQUAL:
-        case GLFW_KEY_KP_ADD:
-            ambient_intensity += 0.1f;
-            cout << "[+] Ambient Intensity: " << ambient_intensity << endl;
-            break;
-        case GLFW_KEY_MINUS:
-        case GLFW_KEY_KP_SUBTRACT:
-            ambient_intensity -= 0.1f;
-            if (ambient_intensity < 0.0f) ambient_intensity = 0.0f;
-            cout << "[-] Ambient Intensity: " << ambient_intensity << endl;
-            break;
-        case GLFW_KEY_RIGHT:
-            light_theta += 10.0f;
-            cout << "[Right] Light Rotation Y: " << light_theta << endl;
-            break;
-        case GLFW_KEY_LEFT:
-            light_theta -= 10.0f;
-            cout << "[Left] Light Rotation Y: " << light_theta << endl;
-            break;
         case GLFW_KEY_1:
             light_color = vmath::vec3(1.0f, 1.0f, 1.0f);
             cout << "[1] Light Color: White" << endl;
@@ -138,46 +119,61 @@ void Onkey(GLFWwindow* window, int key, int scancode, int action, int mods)
             light_color = vmath::vec3(0.3f, 0.3f, 1.0f);
             cout << "[4] Light Color: Blue" << endl;
             break;
-        case GLFW_KEY_A:
-            camera_orbit_angle -= 5.0f;
-            cout << "[A] Camera Orbit: " << camera_orbit_angle << " deg" << endl;
-            break;
-        case GLFW_KEY_D:
-            camera_orbit_angle += 5.0f;
-            cout << "[D] Camera Orbit: " << camera_orbit_angle << " deg" << endl;
-            break;
-        case GLFW_KEY_W:
-            camera_radius -= 0.1f;
-            if (camera_radius < 0.1f) camera_radius = 0.1f;
-            cout << "[W] Camera Radius: " << camera_radius << endl;
-            break;
-        case GLFW_KEY_S:
-            camera_radius += 0.1f;
-            cout << "[S] Camera Radius: " << camera_radius << endl;
-            break;
-        case GLFW_KEY_UP:
-            camera_height += 0.1f;
-            cout << "[Up] Camera Height: " << camera_height << endl;
-            break;
-        case GLFW_KEY_DOWN:
-            camera_height -= 0.1f;
-            cout << "[Down] Camera Height: " << camera_height << endl;
-            break;
-        case GLFW_KEY_Q:
-            reaction_multiplier -= 0.1f;
-            if (reaction_multiplier < 0.0f) reaction_multiplier = 0.0f;
-            cout << "[Q] Reaction Multiplier: " << reaction_multiplier << endl;
-            break;
-        case GLFW_KEY_E:
-            reaction_multiplier += 0.1f;
-            cout << "[E] Reaction Multiplier: " << reaction_multiplier << endl;
-            break;
         case GLFW_KEY_SPACE:
             auto_rotate = !auto_rotate;
             audio.toggle_pause();
             cout << "[Space] Pause / Play" << endl;
             break;
         }
+    }
+}
+
+void processInput(GLFWwindow* window, float dt)
+{
+    float orbit_speed = 90.0f; // degrees per sec
+    float light_speed = 90.0f; // degrees per sec
+    float zoom_speed = 2.0f; // units per sec
+    float height_speed = 2.0f; // units per sec
+    float intensity_speed = 1.0f; // per sec
+
+    if (glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS) {
+        ambient_intensity += intensity_speed * dt;
+    }
+    if (glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS) {
+        ambient_intensity -= intensity_speed * dt;
+        if (ambient_intensity < 0.0f) ambient_intensity = 0.0f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        light_theta += light_speed * dt;
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        light_theta -= light_speed * dt;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        camera_orbit_angle -= orbit_speed * dt;
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        camera_orbit_angle += orbit_speed * dt;
+    }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        camera_radius -= zoom_speed * dt;
+        if (camera_radius < 0.1f) camera_radius = 0.1f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        camera_radius += zoom_speed * dt;
+    }
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        camera_height += height_speed * dt;
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        camera_height -= height_speed * dt;
+    }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        reaction_multiplier -= intensity_speed * dt;
+        if (reaction_multiplier < 0.0f) reaction_multiplier = 0.0f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        reaction_multiplier += intensity_speed * dt;
     }
 }
 
@@ -303,11 +299,14 @@ void init(void)
 
 // Rendering routine
 
-void display(void)
+void display(GLFWwindow* window)
 {
     double now = glfwGetTime();
     float dt = (float)(now - last_time);
     last_time = now;
+    
+    processInput(window, dt);
+
     if (auto_rotate) {
         accumulated_rotation_time += dt;
     }
@@ -445,7 +444,7 @@ int main(int argc, char** argv)
     {
         glfwGetWindowSize(window, &win_width, &win_height);
         Resize(0, 0, win_width, win_height);
-        display();
+        display(window);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
