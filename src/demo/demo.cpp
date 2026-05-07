@@ -106,19 +106,28 @@ void Onkey(GLFWwindow* window, int key, int scancode, int action, int mods)
         {
         case GLFW_KEY_1:
             light_color = vmath::vec3(1.0f, 1.0f, 1.0f);
+            visual_state.use_dynamic_colors = false;
             cout << "[1] Light Color: White" << endl;
             break;
         case GLFW_KEY_2:
             light_color = vmath::vec3(1.0f, 0.3f, 0.3f);
+            visual_state.use_dynamic_colors = false;
             cout << "[2] Light Color: Red" << endl;
             break;
         case GLFW_KEY_3:
             light_color = vmath::vec3(0.3f, 1.0f, 0.3f);
+            visual_state.use_dynamic_colors = false;
             cout << "[3] Light Color: Green" << endl;
             break;
         case GLFW_KEY_4:
             light_color = vmath::vec3(0.3f, 0.3f, 1.0f);
+            visual_state.use_dynamic_colors = false;
             cout << "[4] Light Color: Blue" << endl;
+            break;
+        case GLFW_KEY_5:
+            light_color = vmath::vec3(1.0f, 1.0f, 1.0f);
+            visual_state.use_dynamic_colors = true;
+            cout << "[5] Color Mode: Dynamic Audio Colors" << endl;
             break;
         case GLFW_KEY_SPACE:
             auto_rotate = !auto_rotate;
@@ -443,6 +452,7 @@ int main(int argc, char** argv)
     cout << "    +/-        Ambient intensity" << endl;
     cout << "    Left/Right Light rotation" << endl;
     cout << "    1/2/3/4    Light color (W/R/G/B)" << endl;
+    cout << "    5          Dynamic Audio Colors" << endl;
     cout << "  Camera:" << endl;
     cout << "    A / D      Orbit left/right" << endl;
     cout << "    W / S      Zoom in/out" << endl;

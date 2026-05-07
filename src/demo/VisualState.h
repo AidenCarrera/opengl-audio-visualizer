@@ -11,7 +11,6 @@ static const int NUM_OBJECTS = 47;
 static float white_spheres[12] = { 3.0f, 0.4f, 1.5f,  2.5f, 1.8f, 0.2f,  0.3f, 3.0f, 0.5f,  1.2f, 0.3f, 3.0f };
 static float white_torus[12] = { 0.3f, 2.5f, 3.0f,  3.0f, 0.3f, 2.5f,  1.0f, 3.0f, 0.2f,  3.0f, 1.5f, 0.2f };
 
-
 // Visual state and per-object transformations
 struct ObjectState {
     float pos[3];
@@ -35,6 +34,7 @@ struct VisualState {
     // User controls
     float reaction_multiplier = 1.0f;
     float rot_time = 0.0f;
+    bool use_dynamic_colors = false;
 
     void updateTime(float t) {
         time = t;
@@ -43,6 +43,24 @@ struct VisualState {
 
     void updateAudio(float a, float b, float m, float t) {
         amplitude = a; bass = b; mid = m; treble = t;
+    }
+
+    // Helper to convert Hue, Saturation, Value to RGB
+    void hsv2rgb(float h, float s, float v, float& r, float& g, float& b) {
+        float c = v * s;
+        float h_prime = std::fmod(h, 360.0f) / 60.0f;
+        if (h_prime < 0.0f) h_prime += 6.0f;
+        float x = c * (1.0f - std::abs(std::fmod(h_prime, 2.0f) - 1.0f));
+        float m = v - c;
+
+        if (h_prime < 1.0f) { r = c; g = x; b = 0; }
+        else if (h_prime < 2.0f) { r = x; g = c; b = 0; }
+        else if (h_prime < 3.0f) { r = 0; g = c; b = x; }
+        else if (h_prime < 4.0f) { r = 0; g = x; b = c; }
+        else if (h_prime < 5.0f) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+
+        r += m; g += m; b += m;
     }
 
     void computeVisuals(float base_theta, bool has_audio) {
@@ -65,10 +83,6 @@ struct VisualState {
             dT = 0.5f * (1.0f + sinf(t * 3.7f)) * 0.5f * reaction_multiplier;
         }
 
-        // 2. Base Object Colors
-        float* sphere_hues = white_spheres;
-        float* torus_hues = white_torus;
-
         // Object animation pipeline
 
         // Layer 0: Central object (Bunny)
@@ -79,7 +93,13 @@ struct VisualState {
         obj[0].rot_y = rt * 30.0f;
         obj[0].scale = 1.0f;
 
-        obj[0].tint[0] = 2.0f; obj[0].tint[1] = 2.0f; obj[0].tint[2] = 2.0f;
+        if (use_dynamic_colors) {
+            float r0, g0, b0;
+            hsv2rgb(rt * 20.0f + dA * 60.0f, 0.7f, 2.0f + dA * 0.5f, r0, g0, b0);
+            obj[0].tint[0] = r0; obj[0].tint[1] = g0; obj[0].tint[2] = b0;
+        } else {
+            obj[0].tint[0] = 2.0f; obj[0].tint[1] = 2.0f; obj[0].tint[2] = 2.0f;
+        }
         obj[0].shine = 128.0f;
 
 
@@ -102,9 +122,19 @@ struct VisualState {
             obj[id].scale = 0.10f + (dB * 0.25f);
             float pulse = 1.0f + (dB * 1.5f);
 
-            obj[id].tint[0] = sphere_hues[i * 3 + 0] * pulse;
-            obj[id].tint[1] = sphere_hues[i * 3 + 1] * pulse;
-            obj[id].tint[2] = sphere_hues[i * 3 + 2] * pulse;
+            if (use_dynamic_colors) {
+                float hue = rt * 30.0f + i * 90.0f + dB * 80.0f;
+                float r, g, b;
+                hsv2rgb(hue, 1.0f, pulse * 1.5f, r, g, b);
+                obj[id].tint[0] = r;
+                obj[id].tint[1] = g;
+                obj[id].tint[2] = b;
+            } else {
+                obj[id].tint[0] = white_spheres[i * 3 + 0] * pulse;
+                obj[id].tint[1] = white_spheres[i * 3 + 1] * pulse;
+                obj[id].tint[2] = white_spheres[i * 3 + 2] * pulse;
+            }
+
             obj[id].shine = 24.0f + (dB * 64.0f);
         }
 
@@ -127,9 +157,19 @@ struct VisualState {
             obj[id].scale = 0.07f + (dM * 0.18f);
             float shimmer = 1.0f + (dM * 2.0f);
 
-            obj[id].tint[0] = torus_hues[i * 3 + 0] * shimmer;
-            obj[id].tint[1] = torus_hues[i * 3 + 1] * shimmer;
-            obj[id].tint[2] = torus_hues[i * 3 + 2] * shimmer;
+            if (use_dynamic_colors) {
+                float hue = 360.0f - (rt * 45.0f) + i * 90.0f + dM * 100.0f;
+                float r, g, b;
+                hsv2rgb(hue, 0.8f + dM * 0.1f, shimmer * 1.5f, r, g, b);
+                obj[id].tint[0] = r;
+                obj[id].tint[1] = g;
+                obj[id].tint[2] = b;
+            } else {
+                obj[id].tint[0] = white_torus[i * 3 + 0] * shimmer;
+                obj[id].tint[1] = white_torus[i * 3 + 1] * shimmer;
+                obj[id].tint[2] = white_torus[i * 3 + 2] * shimmer;
+            }
+
             obj[id].shine = 96.0f + (dM * 256.0f);
         }
 
@@ -152,10 +192,20 @@ struct VisualState {
             obj[id].scale = 0.04f + (dT * 0.10f);
             float flash = 1.0f + (dT * 0.8f);
 
-            int hIdx = (i % 4) * 3; // Cycle through the 4 colors for 8 objects
-            obj[id].tint[0] = torus_hues[hIdx + 0] * flash;
-            obj[id].tint[1] = torus_hues[hIdx + 1] * flash;
-            obj[id].tint[2] = torus_hues[hIdx + 2] * flash;
+            if (use_dynamic_colors) {
+                float hue = rt * 120.0f + i * 45.0f + dT * 130.0f;
+                float r, g, b;
+                hsv2rgb(hue, 0.6f + dT * 0.2f, flash * 1.5f, r, g, b);
+                obj[id].tint[0] = r;
+                obj[id].tint[1] = g;
+                obj[id].tint[2] = b;
+            } else {
+                int hIdx = (i % 4) * 3;
+                obj[id].tint[0] = white_torus[hIdx + 0] * flash;
+                obj[id].tint[1] = white_torus[hIdx + 1] * flash;
+                obj[id].tint[2] = white_torus[hIdx + 2] * flash;
+            }
+
             obj[id].shine = 64.0f + (dT * 32.0f);
         }
 
@@ -178,7 +228,15 @@ struct VisualState {
             // Apply Amplitude reactivity
             obj[id].scale = 0.005f + (dA * 0.010f);
 
-            obj[id].tint[0] = 3.0f; obj[id].tint[1] = 3.0f; obj[id].tint[2] = 3.0f;
+            if (use_dynamic_colors) {
+                float hue = rt * 15.0f + i * 12.0f + dA * 40.0f;
+                float r, g, b;
+                hsv2rgb(hue, 0.5f, 1.5f + dA * 0.5f, r, g, b);
+                obj[id].tint[0] = r; obj[id].tint[1] = g; obj[id].tint[2] = b;
+            } else {
+                obj[id].tint[0] = 3.0f; obj[id].tint[1] = 3.0f; obj[id].tint[2] = 3.0f;
+            }
+
             obj[id].shine = 32.0f;
         }
 
