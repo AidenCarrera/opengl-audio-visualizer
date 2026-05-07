@@ -57,10 +57,10 @@ VBObject meshes[NUM_MESHES];
 // Map scene objects to their respective meshes
 inline int getMeshIndex(int id) {
     if (id == 0) return MESH_BUNNY;
-    if (id <= 4) return MESH_SPHERE;
-    if (id <= 8) return MESH_TORUS;
-    if (id <= 16) return MESH_CUBE;
-    return MESH_SPHERE; // particles
+    if (id <= 4) return MESH_SPHERE; // Inner bass ring (4)
+    if (id <= 12) return MESH_TORUS; // Outer mid rings (8)
+    if (id <= 30) return MESH_CUBE;  // Treble cubes (18)
+    return MESH_SPHERE; // Particles (30)
 }
 
 float aspect;

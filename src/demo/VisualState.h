@@ -5,7 +5,7 @@
 #define M_PI_F 3.14159265358979f
 #endif
 
-static const int NUM_OBJECTS = 47;
+static const int NUM_OBJECTS = 61;
 
 // Color themes
 static float white_spheres[12] = { 3.0f, 0.4f, 1.5f,  2.5f, 1.8f, 0.2f,  0.3f, 3.0f, 0.5f,  1.2f, 0.3f, 3.0f };
@@ -109,18 +109,22 @@ struct VisualState {
         for (int i = 0; i < 4; i++) {
             int id = 1 + i;
 
-            // Calculate orbital position
-            float phase = i * 90.0f + rt * (35.0f + i * 5.0f);
+            // Calculate orbital position with uniform speed to prevent clipping
+            float phase = i * 90.0f + rt * 45.0f;
             float ang = phase * M_PI_F / 180.0f;
 
-            obj[id].pos[0] = cosf(ang) * ir;
-            obj[id].pos[1] = sinf(rt * 3.5f + i * 1.57f) * 0.025f; // Vertical bobbing
-            obj[id].pos[2] = sinf(ang) * ir;
+            // Add static randomness to radius
+            float r_offset = sinf(i * 123.45f) * 0.05f;
+            float current_ir = ir + r_offset;
+
+            obj[id].pos[0] = cosf(ang) * current_ir;
+            obj[id].pos[1] = 0.0f; // Fixed flat level height
+            obj[id].pos[2] = sinf(ang) * current_ir;
             obj[id].rot_y = rt * 90.0f + i * 90.0f;
 
             // Apply Bass reactivity
-            obj[id].scale = 0.10f + (dB * 0.25f);
-            float pulse = 1.0f + (dB * 1.5f);
+            obj[id].scale = 0.10f + (dB * 0.18f); // Reduced reactivity
+            float pulse = 1.0f + (dB * 1.0f);     // Reduced reactivity
 
             if (use_dynamic_colors) {
                 float hue = rt * 30.0f + i * 90.0f + dB * 80.0f;
@@ -140,22 +144,27 @@ struct VisualState {
 
 
         // Layer 2: Outer ring (Mids)
-        // 4 Objects orbiting further out that react to vocals/melodies
-        float or_ = 0.90f; // Outer radius
-        for (int i = 0; i < 4; i++) {
+        // 8 Objects orbiting further out that react to vocals/melodies
+        float or_ = 1.10f; // Increased radius to move away from bunny
+        for (int i = 0; i < 8; i++) {
             int id = 5 + i;
 
-            float phase = i * 90.0f + 45.0f + rt * (18.0f + i * 3.0f);
+            float phase = i * 45.0f + 45.0f + rt * 30.0f; // Adjust to 45 degree spacing for 8 objects
             float ang = phase * M_PI_F / 180.0f;
 
-            obj[id].pos[0] = cosf(ang) * or_;
-            obj[id].pos[1] = cosf(rt * 2.8f + i * 1.8f) * 0.02f;
-            obj[id].pos[2] = sinf(ang) * or_;
+            // Add static randomness to radius and height
+            float r_offset = sinf(i * 321.12f) * 0.08f;
+            float h_offset = sinf(i * 666.66f) * 0.35f; // Greatly increased vertical displacement
+            float current_or = or_ + r_offset;
+
+            obj[id].pos[0] = cosf(ang) * current_or;
+            obj[id].pos[1] = h_offset + cosf(rt * 2.8f + i * 1.8f) * 0.1f; // Increased vertical bobbing
+            obj[id].pos[2] = sinf(ang) * current_or;
             obj[id].rot_y = rt * 140.0f + i * 45.0f;
 
             // Apply Mid reactivity
-            obj[id].scale = 0.07f + (dM * 0.18f);
-            float shimmer = 1.0f + (dM * 2.0f);
+            obj[id].scale = 0.07f + (dM * 0.12f); // Reduced reactivity
+            float shimmer = 1.0f + (dM * 1.3f);   // Reduced reactivity
 
             if (use_dynamic_colors) {
                 float hue = 360.0f - (rt * 45.0f) + i * 90.0f + dM * 100.0f;
@@ -165,9 +174,10 @@ struct VisualState {
                 obj[id].tint[1] = g;
                 obj[id].tint[2] = b;
             } else {
-                obj[id].tint[0] = white_torus[i * 3 + 0] * shimmer;
-                obj[id].tint[1] = white_torus[i * 3 + 1] * shimmer;
-                obj[id].tint[2] = white_torus[i * 3 + 2] * shimmer;
+                int hIdx = (i % 4) * 3;
+                obj[id].tint[0] = white_torus[hIdx + 0] * shimmer;
+                obj[id].tint[1] = white_torus[hIdx + 1] * shimmer;
+                obj[id].tint[2] = white_torus[hIdx + 2] * shimmer;
             }
 
             obj[id].shine = 96.0f + (dM * 256.0f);
@@ -175,17 +185,29 @@ struct VisualState {
 
 
         // Layer 3: Outermost ring (Treble)
-        // 8 Objects orbiting furthest out that react to hi-hats/snares
-        float outer_r = 1.30f;
-        for (int i = 0; i < 8; i++) {
-            int id = 9 + i;
+        // 18 Objects orbiting furthest out that react to hi-hats/snares
+        float outer_r = 1.50f; // Increased radius
+        for (int i = 0; i < 18; i++) {
+            int id = 13 + i; // Start at 13 because layer 2 goes up to 12
 
-            float phase = i * 45.0f - rt * (10.0f + i); // Negative rotation
+            float phase, current_outer, h_offset;
+            if (i < 8) {
+                // First 8 cubes start grouped in a line (20 degrees apart).
+                // They orbit together but have a tiny speed difference (i * 0.5f) so they slowly stretch into a long string!
+                phase = i * 12.0f - rt * (20.0f + i * 0.5f); 
+                current_outer = outer_r; // Clean uniform radius
+                h_offset = (i - 3.5f) * 0.05f; // Slight geometric height slope
+            } else {
+                // Remaining 10 cubes are sporadic and wildly orbit the scene
+                phase = i * 137.0f - rt * (10.0f + i * 5.0f);
+                current_outer = outer_r + sinf(i * 456.78f) * 0.35f; // Sporadic radius
+                h_offset = sinf(i * 777.77f) * 0.3f; // Sporadic height
+            }
             float ang = phase * M_PI_F / 180.0f;
 
-            obj[id].pos[0] = cosf(ang) * outer_r;
-            obj[id].pos[1] = sinf(rt * 1.5f + i * 0.8f) * 0.06f;
-            obj[id].pos[2] = sinf(ang) * outer_r;
+            obj[id].pos[0] = cosf(ang) * current_outer;
+            obj[id].pos[1] = h_offset + sinf(rt * 1.5f + i * 0.8f) * 0.08f;
+            obj[id].pos[2] = sinf(ang) * current_outer;
             obj[id].rot_y = rt * 100.0f + i * 45.0f;
 
             // Apply Treble reactivity
@@ -213,10 +235,10 @@ struct VisualState {
         // Layer 4: Background particles (Reactive to overall amplitude)
         // 30 tiny objects floating in the background that react to overall sound
         for (int i = 0; i < 30; i++) {
-            int id = 17 + i;
+            int id = 31 + i; // Starts at 31 because layer 3 goes up to 30
 
-            float p_radius = 0.4f + (i % 10) * 0.25f; // Scattered depths
-            float phase = i * 45.0f + rt * (10.0f - (i % 3) * 2.0f);
+            float p_radius = 0.5f + (i % 10) * 0.3f + sinf(i * 789.12f) * 0.1f; // Pushed outward
+            float phase = i * 45.0f + rt * 15.0f; // Uniform speed
             float ang = phase * M_PI_F / 180.0f;
             float h_offset = sinf(i * 4.0f) * 0.7f;
 
