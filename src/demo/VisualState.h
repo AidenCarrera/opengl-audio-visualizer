@@ -36,6 +36,12 @@ struct VisualState {
     float rot_time = 0.0f;
     bool use_dynamic_colors = false;
 
+    // Radius controls
+    float radius_bass = 0.50f;
+    float radius_mid = 1.10f;
+    float radius_treble = 1.50f;
+    float radius_particles = 0.50f;
+
     void updateTime(float t) {
         time = t;
         time_drive = 0.5f * (1.0f + sinf(t));
@@ -105,7 +111,7 @@ struct VisualState {
 
         // Layer 1: Inner ring (Bass)
         // 4 Objects orbiting tightly that react to bass sounds
-        float ir = 0.50f; // Inner radius
+        float ir = radius_bass;
         for (int i = 0; i < 4; i++) {
             int id = 1 + i;
 
@@ -145,7 +151,7 @@ struct VisualState {
 
         // Layer 2: Outer ring (Mids)
         // 8 Objects orbiting further out that react to vocals/melodies
-        float or_ = 1.10f; // Increased radius to move away from bunny
+        float or_ = radius_mid;
         for (int i = 0; i < 8; i++) {
             int id = 5 + i;
 
@@ -186,7 +192,7 @@ struct VisualState {
 
         // Layer 3: Outermost ring (Treble)
         // 18 Objects orbiting furthest out that react to hi-hats/snares
-        float outer_r = 1.50f; // Increased radius
+        float outer_r = radius_treble;
         for (int i = 0; i < 18; i++) {
             int id = 13 + i; // Start at 13 because layer 2 goes up to 12
 
@@ -237,7 +243,7 @@ struct VisualState {
         for (int i = 0; i < 30; i++) {
             int id = 31 + i; // Starts at 31 because layer 3 goes up to 30
 
-            float p_radius = 0.5f + (i % 10) * 0.3f + sinf(i * 789.12f) * 0.1f; // Pushed outward
+            float p_radius = radius_particles + (i % 10) * 0.3f + sinf(i * 789.12f) * 0.1f;
             float phase = i * 45.0f + rt * 15.0f; // Uniform speed
             float ang = phase * M_PI_F / 180.0f;
             float h_offset = sinf(i * 4.0f) * 0.7f;

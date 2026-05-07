@@ -22,6 +22,10 @@
 #include "AudioSystem.h"
 #include "VisualState.h"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 using namespace std;
 
 static const int MESH_BUNNY = 0;
@@ -439,6 +443,14 @@ int main(int argc, char** argv)
     glfwSetKeyCallback(window, Onkey);
     gl3wInit();
 
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
     init();
 
     // Load and play audio
@@ -469,10 +481,53 @@ int main(int argc, char** argv)
     {
         glfwGetWindowSize(window, &win_width, &win_height);
         Resize(0, 0, win_width, win_height);
+
+        // Start the Dear ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Build the Settings Window
+        ImGui::Begin("Visualizer Settings");
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Separator();
+        
+        ImGui::Text("Camera");
+        ImGui::SliderFloat("Orbit Angle", &camera_orbit_angle, 0.0f, 360.0f);
+        ImGui::SliderFloat("Height", &camera_height, -2.0f, 2.0f);
+        ImGui::SliderFloat("Zoom", &camera_radius, 0.5f, 5.0f);
+        ImGui::Checkbox("Auto Rotate", &auto_rotate);
+        ImGui::Separator();
+        
+        ImGui::Text("Visuals");
+        ImGui::SliderFloat("Reaction Multiplier", &reaction_multiplier, 0.0f, 3.0f);
+        ImGui::Checkbox("Dynamic Audio Colors", &visual_state.use_dynamic_colors);
+        ImGui::SliderFloat("Ambient Intensity", &ambient_intensity, 0.0f, 1.0f);
+        ImGui::SliderFloat("Light Rotation", &light_theta, 0.0f, 360.0f);
+        ImGui::Checkbox("Show Axis", &show_axis);
+        ImGui::Separator();
+        
+        ImGui::Text("Ring Radiuses");
+        ImGui::SliderFloat("Bass (Inner)", &visual_state.radius_bass, 0.1f, 3.0f);
+        ImGui::SliderFloat("Mids (Torus)", &visual_state.radius_mid, 0.1f, 3.0f);
+        ImGui::SliderFloat("Treble (Cubes)", &visual_state.radius_treble, 0.1f, 3.0f);
+        ImGui::SliderFloat("Particles", &visual_state.radius_particles, 0.1f, 3.0f);
+        ImGui::End();
+
         display(window);
+
+        // Render ImGui
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // Cleanup ImGui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     audio.cleanup();
     glfwDestroyWindow(window);

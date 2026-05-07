@@ -22,8 +22,10 @@ find_package(OpenGL REQUIRED)
 
 if(WIN32)
 set(COMMON_LIBS vermilion ${OPENGL_LIBRARIES} optimized glfw3 debug glfw3_d winmm)
+add_definitions(-DGLFW_EXPOSE_NATIVE_WGL -DGLFW_EXPOSE_NATIVE_WIN32)
 elseif (UNIX)
 set(COMMON_LIBS vermilion ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES} GL rt dl)
+add_definitions(-DGLFW_EXPOSE_NATIVE_GLX -DGLFW_EXPOSE_NATIVE_X11)
 else()
 set(COMMON_LIBS vermilion)
 endif()
@@ -55,7 +57,18 @@ if (OPENMP_FOUND)
 endif()
 
 foreach(EXAMPLE ${EXAMPLES})
-  add_executable(${EXAMPLE} src/${EXAMPLE}/${EXAMPLE}.cpp ${COMMON_HEADERS} external/kissfft/kiss_fft.c external/kissfft/kiss_fftr.c)
+  add_executable(${EXAMPLE} 
+      src/${EXAMPLE}/${EXAMPLE}.cpp 
+      ${COMMON_HEADERS} 
+      external/kissfft/kiss_fft.c 
+      external/kissfft/kiss_fftr.c
+      external/imgui/imgui.cpp
+      external/imgui/imgui_draw.cpp
+      external/imgui/imgui_tables.cpp
+      external/imgui/imgui_widgets.cpp
+      external/imgui/backends/imgui_impl_glfw.cpp
+      external/imgui/backends/imgui_impl_opengl3.cpp
+  )
   set_property(TARGET ${EXAMPLE} PROPERTY DEBUG_POSTFIX _d)
 
   target_link_libraries(${EXAMPLE} ${COMMON_LIBS})
@@ -76,5 +89,7 @@ ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 include_directories( include )
 include_directories(lib/glfw/include)
 include_directories(${CMAKE_SOURCE_DIR}/external/kissfft)
+include_directories(${CMAKE_SOURCE_DIR}/external/imgui)
+include_directories(${CMAKE_SOURCE_DIR}/external/imgui/backends)
 
 add_subdirectory(lib/glfw)
