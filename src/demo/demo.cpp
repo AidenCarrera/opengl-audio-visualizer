@@ -76,6 +76,7 @@ float camera_height = 0.25f;
 float camera_radius = 2.0f;
 float reaction_multiplier = 1.0f;
 bool auto_rotate = true;
+bool show_axis = false;
 float accumulated_rotation_time = 0.0f;
 double last_time = 0.0f;
 
@@ -123,6 +124,10 @@ void Onkey(GLFWwindow* window, int key, int scancode, int action, int mods)
             auto_rotate = !auto_rotate;
             audio.toggle_pause();
             cout << "[Space] Pause / Play" << endl;
+            break;
+        case GLFW_KEY_X:
+            show_axis = !show_axis;
+            cout << "[X] Toggle Axis: " << (show_axis ? "ON" : "OFF") << endl;
             break;
         }
     }
@@ -380,19 +385,21 @@ void display(GLFWwindow* window)
     }
 
     // Render axes for the central object
-    glUseProgram(axis_program);
-    model_matrix = vmath::translate(visual_state.obj[0].pos[0], visual_state.obj[0].pos[1], visual_state.obj[0].pos[2]) *
-        vmath::rotate(0.0f, visual_state.obj[0].rot_y, 0.0f) *
-        vmath::scale(visual_state.obj[0].scale * 0.3f);
-    glUniformMatrix4fv(axis_model_matrix_loc, 1, GL_FALSE, model_matrix);
-    glUniformMatrix4fv(axis_view_matrix_loc, 1, GL_FALSE, view_matrix);
-    glUniformMatrix4fv(axis_projection_matrix_loc, 1, GL_FALSE, projection_matrix);
+    if (show_axis) {
+        glUseProgram(axis_program);
+        model_matrix = vmath::translate(visual_state.obj[0].pos[0], visual_state.obj[0].pos[1], visual_state.obj[0].pos[2]) *
+            vmath::rotate(0.0f, visual_state.obj[0].rot_y, 0.0f) *
+            vmath::scale(visual_state.obj[0].scale * 0.3f);
+        glUniformMatrix4fv(axis_model_matrix_loc, 1, GL_FALSE, model_matrix);
+        glUniformMatrix4fv(axis_view_matrix_loc, 1, GL_FALSE, view_matrix);
+        glUniformMatrix4fv(axis_projection_matrix_loc, 1, GL_FALSE, projection_matrix);
 
-    glLineWidth(2.0f);
-    glBindVertexArray(VAOs[Axis]);
-    glDrawArrays(GL_LINES, 0, 6);
-    glLineWidth(1.0f);
-    glBindVertexArray(0);
+        glLineWidth(2.0f);
+        glBindVertexArray(VAOs[Axis]);
+        glDrawArrays(GL_LINES, 0, 6);
+        glLineWidth(1.0f);
+        glBindVertexArray(0);
+    }
 }
 
 // Window resize callback and application entry point
@@ -437,6 +444,8 @@ int main(int argc, char** argv)
     cout << "  Audio:" << endl;
     cout << "    Q / E      Reaction intensity" << endl;
     cout << "    Space      Play / pause" << endl;
+    cout << "  Other:" << endl;
+    cout << "    X          Toggle Axis" << endl;
 
     cout << "--------------------------------------------" << endl;
 
