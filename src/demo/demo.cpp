@@ -421,6 +421,9 @@ int main(int argc, char** argv)
 
     GLFWwindow* window = glfwCreateWindow(win_width, win_height, "AIDEN CARRERA A20430776 - Audio Visualizer", NULL, NULL);
     glfwMakeContextCurrent(window);
+
+    glfwSwapInterval(1);
+
     glfwSetKeyCallback(window, Onkey);
     gl3wInit();
 
