@@ -89,8 +89,8 @@ float ambient_intensity = 0.2f;
 float light_theta = 90.0f;
 vmath::vec3 light_color(1.0f, 1.0f, 1.0f);
 
-int win_width = 1024;
-int win_height = 768;
+int win_width = 1600;
+int win_height = 900;
 
 const GLuint NumVertices = 6;
 static const float color_clear[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -436,6 +436,16 @@ int main(int argc, char** argv)
     glfwWindowHint(GLFW_SAMPLES, 4);
 
     GLFWwindow* window = glfwCreateWindow(win_width, win_height, "AIDEN CARRERA A20430776 - Audio Visualizer", NULL, NULL);
+    
+    // Center the window on the primary monitor
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    if (monitor) {
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        if (mode) {
+            glfwSetWindowPos(window, (mode->width - win_width) / 2, (mode->height - win_height) / 2);
+        }
+    }
+
     glfwMakeContextCurrent(window);
 
     glfwSwapInterval(1);
@@ -486,6 +496,19 @@ int main(int argc, char** argv)
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        // Mouse Camera Controls
+        ImGuiIO& io = ImGui::GetIO();
+        if (!io.WantCaptureMouse) {
+            if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                camera_orbit_angle -= io.MouseDelta.x * 0.5f;
+                camera_height += io.MouseDelta.y * 0.01f;
+            }
+            if (io.MouseWheel != 0.0f) {
+                camera_radius -= io.MouseWheel * 0.5f;
+                if (camera_radius < 0.1f) camera_radius = 0.1f;
+            }
+        }
 
         // Build the Settings Window
         ImGui::Begin("Visualizer Settings");
