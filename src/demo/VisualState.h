@@ -5,7 +5,7 @@
 #define M_PI_F 3.14159265358979f
 #endif
 
-static const int NUM_OBJECTS = 61;
+static const int MAX_OBJECTS = 256;
 
 // Color themes
 static float white_spheres[12] = { 3.0f, 0.4f, 1.5f,  2.5f, 1.8f, 0.2f,  0.3f, 3.0f, 0.5f,  1.2f, 0.3f, 3.0f };
@@ -13,6 +13,8 @@ static float white_torus[12] = { 0.3f, 2.5f, 3.0f,  3.0f, 0.3f, 2.5f,  1.0f, 3.0
 
 // Visual state and per-object transformations
 struct ObjectState {
+    bool active;
+    int mesh_id;
     float pos[3];
     float rot_y;
     float scale;
@@ -28,7 +30,7 @@ struct VisualState {
     bool audio_active;
 
     // Outputs
-    ObjectState obj[NUM_OBJECTS];
+    ObjectState obj[MAX_OBJECTS];
     float light_pos[3];
 
     // User controls
@@ -41,6 +43,12 @@ struct VisualState {
     float radius_mid = 1.10f;
     float radius_treble = 1.50f;
     float radius_particles = 0.50f;
+
+    // Object counts
+    int num_bass = 4;
+    int num_mid = 8;
+    int num_treble = 18;
+    int num_particles = 30;
 
     void updateTime(float t) {
         time = t;
@@ -89,34 +97,45 @@ struct VisualState {
             dT = 0.5f * (1.0f + sinf(t * 3.7f)) * 0.5f * reaction_multiplier;
         }
 
-        // Object animation pipeline
+        // Clear all objects
+        for (int i = 0; i < MAX_OBJECTS; i++) {
+            obj[i].active = false;
+        }
+
+        int id = 0;
 
         // Layer 0: Central object (Bunny)
         // Hovers slightly in the middle and rotates constantly
-        obj[0].pos[0] = sinf(rt * 0.7f) * 0.02f;
-        obj[0].pos[1] = sinf(rt * 1.2f) * 0.015f;
-        obj[0].pos[2] = cosf(rt * 0.5f) * 0.02f;
-        obj[0].rot_y = rt * 30.0f;
-        obj[0].scale = 1.0f;
+        obj[id].active = true;
+        obj[id].mesh_id = 0; // MESH_BUNNY
+        obj[id].pos[0] = sinf(rt * 0.7f) * 0.02f;
+        obj[id].pos[1] = sinf(rt * 1.2f) * 0.015f;
+        obj[id].pos[2] = cosf(rt * 0.5f) * 0.02f;
+        obj[id].rot_y = rt * 30.0f;
+        obj[id].scale = 1.0f;
 
         if (use_dynamic_colors) {
             float r0, g0, b0;
             hsv2rgb(rt * 20.0f + dA * 60.0f, 0.7f, 2.0f + dA * 0.5f, r0, g0, b0);
-            obj[0].tint[0] = r0; obj[0].tint[1] = g0; obj[0].tint[2] = b0;
+            obj[id].tint[0] = r0; obj[id].tint[1] = g0; obj[id].tint[2] = b0;
         } else {
-            obj[0].tint[0] = 2.0f; obj[0].tint[1] = 2.0f; obj[0].tint[2] = 2.0f;
+            obj[id].tint[0] = 2.0f; obj[id].tint[1] = 2.0f; obj[id].tint[2] = 2.0f;
         }
-        obj[0].shine = 128.0f;
+        obj[id].shine = 128.0f;
+        id++;
 
 
         // Layer 1: Inner ring (Bass)
-        // 4 Objects orbiting tightly that react to bass sounds
+        // Objects orbiting tightly that react to bass sounds
         float ir = radius_bass;
-        for (int i = 0; i < 4; i++) {
-            int id = 1 + i;
+        for (int i = 0; i < num_bass; i++) {
+            if (id >= MAX_OBJECTS) break;
+            
+            obj[id].active = true;
+            obj[id].mesh_id = 1; // MESH_SPHERE
 
             // Calculate orbital position with uniform speed to prevent clipping
-            float phase = i * 90.0f + rt * 45.0f;
+            float phase = i * (360.0f / (num_bass > 0 ? num_bass : 1)) + rt * 45.0f;
             float ang = phase * M_PI_F / 180.0f;
 
             // Add static randomness to radius
@@ -140,22 +159,26 @@ struct VisualState {
                 obj[id].tint[1] = g;
                 obj[id].tint[2] = b;
             } else {
-                obj[id].tint[0] = white_spheres[i * 3 + 0] * pulse;
-                obj[id].tint[1] = white_spheres[i * 3 + 1] * pulse;
-                obj[id].tint[2] = white_spheres[i * 3 + 2] * pulse;
+                obj[id].tint[0] = white_spheres[(i % 4) * 3 + 0] * pulse;
+                obj[id].tint[1] = white_spheres[(i % 4) * 3 + 1] * pulse;
+                obj[id].tint[2] = white_spheres[(i % 4) * 3 + 2] * pulse;
             }
 
             obj[id].shine = 24.0f + (dB * 64.0f);
+            id++;
         }
 
 
         // Layer 2: Outer ring (Mids)
-        // 8 Objects orbiting further out that react to vocals/melodies
+        // Objects orbiting further out that react to vocals/melodies
         float or_ = radius_mid;
-        for (int i = 0; i < 8; i++) {
-            int id = 5 + i;
+        for (int i = 0; i < num_mid; i++) {
+            if (id >= MAX_OBJECTS) break;
+            
+            obj[id].active = true;
+            obj[id].mesh_id = 2; // MESH_TORUS
 
-            float phase = i * 45.0f + 45.0f + rt * 30.0f; // Adjust to 45 degree spacing for 8 objects
+            float phase = i * (360.0f / (num_mid > 0 ? num_mid : 1)) + 45.0f + rt * 30.0f;
             float ang = phase * M_PI_F / 180.0f;
 
             // Add static randomness to radius and height
@@ -187,25 +210,30 @@ struct VisualState {
             }
 
             obj[id].shine = 96.0f + (dM * 256.0f);
+            id++;
         }
 
 
         // Layer 3: Outermost ring (Treble)
-        // 18 Objects orbiting furthest out that react to hi-hats/snares
+        // Objects orbiting furthest out that react to hi-hats/snares
         float outer_r = radius_treble;
-        for (int i = 0; i < 18; i++) {
-            int id = 13 + i; // Start at 13 because layer 2 goes up to 12
+        for (int i = 0; i < num_treble; i++) {
+            if (id >= MAX_OBJECTS) break;
+            
+            obj[id].active = true;
+            obj[id].mesh_id = 3; // MESH_CUBE
 
             float phase, current_outer, h_offset;
-            if (i < 8) {
-                // First 8 cubes start grouped in a line (20 degrees apart).
-                // They orbit together but have a tiny speed difference (i * 0.5f) so they slowly stretch into a long string!
-                phase = i * 12.0f - rt * (20.0f + i * 0.5f); 
+            if (i < num_treble / 2) {
+                // First half of cubes start grouped in a line (20 degrees apart).
+                // They orbit together but have a tiny speed difference (i * 0.1f) so they slowly stretch into a long string!
+                phase = i * 12.0f - rt * (20.0f + i * 0.1f); 
                 current_outer = outer_r; // Clean uniform radius
-                h_offset = (i - 3.5f) * 0.05f; // Slight geometric height slope
+                h_offset = (i - (num_treble / 4.0f)) * 0.05f; // Slight geometric height slope
             } else {
-                // Remaining 10 cubes are sporadic and wildly orbit the scene
-                phase = i * 137.0f - rt * (10.0f + i * 5.0f);
+                // Remaining cubes are sporadic and wildly orbit the scene
+                // Bounded pseudo-random speed so it doesn't spin wildly out of control at high object counts
+                phase = i * 137.0f - rt * (25.0f + sinf(i * 321.0f) * 15.0f);
                 current_outer = outer_r + sinf(i * 456.78f) * 0.35f; // Sporadic radius
                 h_offset = sinf(i * 777.77f) * 0.3f; // Sporadic height
             }
@@ -235,13 +263,17 @@ struct VisualState {
             }
 
             obj[id].shine = 64.0f + (dT * 32.0f);
+            id++;
         }
 
 
         // Layer 4: Background particles (Reactive to overall amplitude)
-        // 30 tiny objects floating in the background that react to overall sound
-        for (int i = 0; i < 30; i++) {
-            int id = 31 + i; // Starts at 31 because layer 3 goes up to 30
+        // tiny objects floating in the background that react to overall sound
+        for (int i = 0; i < num_particles; i++) {
+            if (id >= MAX_OBJECTS) break;
+            
+            obj[id].active = true;
+            obj[id].mesh_id = 1; // MESH_SPHERE
 
             float p_radius = radius_particles + (i % 10) * 0.3f + sinf(i * 789.12f) * 0.1f;
             float phase = i * 45.0f + rt * 15.0f; // Uniform speed
@@ -266,6 +298,7 @@ struct VisualState {
             }
 
             obj[id].shine = 32.0f;
+            id++;
         }
 
         // Dynamic global lighting

@@ -58,14 +58,7 @@ vmath::mat4 model_matrix, view_matrix, projection_matrix;
 // Meshes to render
 VBObject meshes[NUM_MESHES];
 
-// Map scene objects to their respective meshes
-inline int getMeshIndex(int id) {
-    if (id == 0) return MESH_BUNNY;
-    if (id <= 4) return MESH_SPHERE; // Inner bass ring (4)
-    if (id <= 12) return MESH_TORUS; // Outer mid rings (8)
-    if (id <= 30) return MESH_CUBE;  // Treble cubes (18)
-    return MESH_SPHERE; // Particles (30)
-}
+
 
 float aspect;
 
@@ -380,7 +373,9 @@ void display(GLFWwindow* window)
     glUniform3fv(light_pos_loc, 1, visual_state.light_pos);
     glUniform3fv(camera_pos_loc, 1, eye);
 
-    for (int i = 0; i < NUM_OBJECTS; i++) {
+    for (int i = 0; i < MAX_OBJECTS; i++) {
+        if (!visual_state.obj[i].active) continue;
+
         const ObjectState& o = visual_state.obj[i];
 
         // Per-object light color (base * tint)
@@ -397,7 +392,7 @@ void display(GLFWwindow* window)
             vmath::scale(o.scale);
         glUniformMatrix4fv(render_model_matrix_loc, 1, GL_FALSE, model_matrix);
 
-        meshes[getMeshIndex(i)].Render(0, 1);
+        meshes[o.mesh_id].Render(0, 1);
     }
 
     // Render axes for the central object
@@ -535,6 +530,13 @@ int main(int argc, char** argv)
         ImGui::SliderFloat("Mids (Torus)", &visual_state.radius_mid, 0.1f, 3.0f);
         ImGui::SliderFloat("Treble (Cubes)", &visual_state.radius_treble, 0.1f, 3.0f);
         ImGui::SliderFloat("Particles", &visual_state.radius_particles, 0.1f, 3.0f);
+        ImGui::Separator();
+        
+        ImGui::Text("Object Counts");
+        ImGui::SliderInt("Bass Count", &visual_state.num_bass, 0, 16);
+        ImGui::SliderInt("Mids Count", &visual_state.num_mid, 0, 32);
+        ImGui::SliderInt("Treble Count", &visual_state.num_treble, 0, 64);
+        ImGui::SliderInt("Particles Count", &visual_state.num_particles, 0, 128);
         ImGui::End();
 
         display(window);
