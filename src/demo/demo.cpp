@@ -184,6 +184,9 @@ void processInput(GLFWwindow* window, float dt)
 
 void init(void)
 {
+    // Print which GPU OpenGL is using
+    std::cout << "Using GPU: " << glGetString(GL_RENDERER) << std::endl;
+    
     // Axis vertices
     struct VertexData { GLubyte color[4]; GLfloat position[4]; };
     VertexData axis_vertices[NumVertices] = {
