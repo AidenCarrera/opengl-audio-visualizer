@@ -13,6 +13,11 @@
 #include <iostream>
 #include <cmath>
 #include <cstring>
+#include <vector>
+#include <string>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #include "AudioSystem.h"
 #include "VisualState.h"
@@ -75,7 +80,7 @@ float accumulated_rotation_time = 0.0f;
 double last_time = 0.0f;
 
 // Light setup
-float ambient_intensity = 0.3f;
+float ambient_intensity = 0.2f;
 float light_theta = 90.0f;
 vmath::vec3 light_color(1.0f, 1.0f, 1.0f);
 
@@ -261,12 +266,39 @@ void init(void)
     skybox_projection_loc = glGetUniformLocation(skybox_program, "projection_matrix");
 
     // Cubemap texture
-    vglImageData image;
-    Textures[TextureCube] = vglLoadTexture("../assets/TantolundenCube.dds", 0, &image);
-    GLenum e = glGetError();
-    if (e != GL_NO_ERROR)
-        cout << "[ERROR] Cubemap texture load failed: " << e << endl;
-    vglUnloadImage(&image);
+    glGenTextures(1, &Textures[TextureCube]);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, Textures[TextureCube]);
+
+    std::vector<std::string> faces = {
+        "../assets/px.png",
+        "../assets/nx.png",
+        "../assets/py.png",
+        "../assets/ny.png",
+        "../assets/pz.png",
+        "../assets/nz.png"
+    };
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+                         0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "[ERROR] Cubemap texture failed to load at path: " << faces[i] << std::endl;
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
 // Rendering routine
