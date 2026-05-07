@@ -212,6 +212,15 @@ struct AudioSystem {
         treble = raw_treble > treble ? treble * (1 - ATK) + raw_treble * ATK : treble * DCY;
     }
 
+    void unload() {
+        if (engine_ok) { ma_engine_uninit(&engine); engine_ok = false; }
+        delete[] samples; samples = nullptr;
+        total_frames = 0; loaded = false; playing = false;
+        is_paused = false; pause_accum = 0;
+        amplitude = bass = mid = treble = 0;
+        pk_amp = pk_bass = pk_mid = pk_treble = 0.001f;
+    }
+
     void cleanup() {
         if (engine_ok) ma_engine_uninit(&engine);
         delete[] samples;

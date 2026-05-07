@@ -26,6 +26,20 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include <windows.h>
+#include <commdlg.h>
+
+static std::string openAudioFileDialog() {
+    char path[MAX_PATH] = {};
+    OPENFILENAMEA ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFilter = "Audio Files\0*.wav;*.mp3;*.flac\0All Files\0*.*\0";
+    ofn.lpstrFile = path;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+    return GetOpenFileNameA(&ofn) ? path : "";
+}
+
 using namespace std;
 
 static const int MESH_BUNNY = 0;
@@ -537,6 +551,19 @@ int main(int argc, char** argv)
         ImGui::SliderInt("Mids Count", &visual_state.num_mid, 0, 32);
         ImGui::SliderInt("Treble Count", &visual_state.num_treble, 0, 64);
         ImGui::SliderInt("Particles Count", &visual_state.num_particles, 0, 128);
+        ImGui::Separator();
+
+        ImGui::Text("Audio");
+        if (ImGui::Button("Load Audio File...")) {
+            std::string path = openAudioFileDialog();
+            if (!path.empty()) {
+                audio.unload();
+                if (audio.load(path.c_str()))
+                    audio.play();
+            }
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted(audio.loaded ? audio.file_path : "(no file)");
         ImGui::End();
 
         display(window);
