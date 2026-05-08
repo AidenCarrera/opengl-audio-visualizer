@@ -21,7 +21,7 @@ set (CMAKE_DEBUG_POSTFIX "_d")
 find_package(OpenGL REQUIRED)
 
 if(WIN32)
-set(COMMON_LIBS vermilion ${OPENGL_LIBRARIES} optimized glfw3 debug glfw3_d winmm)
+set(COMMON_LIBS vermilion ${OPENGL_LIBRARIES} glfw winmm)
 add_definitions(-DGLFW_EXPOSE_NATIVE_WGL -DGLFW_EXPOSE_NATIVE_WIN32)
 elseif (UNIX)
 set(COMMON_LIBS vermilion ${OPENGL_LIBRARIES} glfw ${GLFW_LIBRARIES} GL rt dl)
