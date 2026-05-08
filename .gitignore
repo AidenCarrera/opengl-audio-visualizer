@@ -16,7 +16,5 @@ Thumbs.db
 # Generated Doxygen HTML output
 lib/glfw/docs/html/
 
-# ImGui bundled example IDE project files
-external/imgui/examples/libs/
-external/imgui/examples/*.sln
-external/imgui/examples/**/*.vcxproj
+# ImGui bundled example projects
+external/imgui/examples/
